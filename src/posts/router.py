@@ -1,71 +1,38 @@
 from typing import Annotated
-from fastapi import APIRouter, Body
-from src.posts.database import db
+from fastapi import APIRouter, Depends
 from src.posts.schemas import PostCreate, Post, PostUpdate
-from src.posts.exceptions import PostNotFound
-from datetime import datetime
+from src.posts.dependencies import get_db
 from typing import List
+from src.database import engine
+from sqlalchemy.orm import Session
+
+from src.posts import models, service as service
 
 router = APIRouter()
 
+models.Base.metadata.create_all(bind=engine)
+
 
 @router.get("/", response_model=List[Post])
-async def read_all():
-    return db.posts
+async def read_all(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    return service.get_posts(db=db, skip=skip, limit=limit)
 
 
 @router.post("/", response_model=Post)
-async def create(post_data: PostCreate):
-    current_time = datetime.now()
-
-    db.last_id += 1
-    new_post_data = post_data.model_dump()
-    new_post_data.update({
-        "id": db.last_id,
-        "created_at": current_time,
-        "updated_at": current_time
-    })
-
-    db.posts.append(Post(**new_post_data))
-
-    return db.posts[db.last_id]
+async def create(post_data: PostCreate, db: Session = Depends(get_db)):
+    return service.create_post(db=db, post=post_data)
 
 
 @router.get("/{post_id}", response_model=Post)
-async def read(post_id: int) -> dict[str, str]:
-    for post in db.posts:
-        if post.id == post_id:
-            return post
-
-    raise PostNotFound
+async def read(post_id: int, db: Session = Depends(get_db)):
+    return service.get_post_by_id(db=db, post_id=post_id)
 
 
 @router.put("/{post_id}", response_model=Post)
-async def update(post_id: int, post_data: PostUpdate):
-    id = -1
-    for i, post in enumerate(db.posts):
-        if post.id == post_id:
-            id = i
-
-    if id == -1:
-        raise PostNotFound
-
-    update_data = post_data.model_dump(exclude_unset=True)
-    update_data["updated_at"] = datetime.today()
-    db.posts[id] = db.posts[id].model_copy(update=update_data, deep=True)
-
-    return db.posts[id]
+async def update(post_id: int, post_data: PostUpdate, db: Session = Depends(get_db)):
+    return service.update_post_by_id(db=db, post_id=post_id, post=post_data)
 
 
 @router.delete("/{post_id}")
-async def delete(post_id: int):
-    id = -1
-    for i, post in enumerate(db.posts):
-        if post.id == post_id:
-            id = i
-
-    if id == -1:
-        raise PostNotFound
-
-    del db.posts[id]
-    return
+async def delete(post_id: int, db: Session = Depends(get_db)):
+    return service.delete_post_by_id(db=db, post_id=post_id)

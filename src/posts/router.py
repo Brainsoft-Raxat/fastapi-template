@@ -1,7 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends
 from src.posts.schemas import PostCreate, Post, PostUpdate
-from src.posts.dependencies import get_db
+from src.dependencies import get_db
 from typing import List
 from src.database import engine
 from sqlalchemy.orm import Session

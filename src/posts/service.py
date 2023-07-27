@@ -20,7 +20,7 @@ def create_post(db: Session, post: schemas.PostCreate):
 def get_post_by_id(db: Session, post_id: int):
     post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not post:
-        raise PostNotFound
+        raise PostNotFound()
     return post
 
 
@@ -29,7 +29,7 @@ def update_post_by_id(db: Session, post_id: int, post: schemas.PostUpdate):
         models.Post.id == post_id).first()
 
     if not db_post:
-        raise PostNotFound
+        raise PostNotFound()
 
     for key, value in post.dict(exclude_unset=True).items():
         setattr(db_post, key, value)
@@ -45,7 +45,7 @@ def delete_post_by_id(db: Session, post_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
 
     if not db_post:
-        raise PostNotFound
+        raise PostNotFound()
 
     db.delete(db_post)
     db.commit()
